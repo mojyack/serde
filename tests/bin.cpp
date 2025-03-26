@@ -7,12 +7,19 @@
 #include "enum.hpp" // note that binary format does not use {to,from}_string(Enum)
 
 // primitives
+struct Trivial {
+    int    d;
+    double f;
+    Enum   e;
+};
+
 struct Primitives {
     SerdeFieldsBegin;
     int         SerdeField(integer);
     double      SerdeField(floating);
     std::string SerdeField(string);
     Enum        SerdeField(enumerator);
+    Trivial     SerdeField(trivial);
     SerdeFieldsEnd;
 };
 
@@ -22,6 +29,7 @@ auto primitives() -> int {
         .floating   = 2.0,
         .string     = "string",
         .enumerator = Enum::A,
+        .trivial    = {3, 4.0, Enum::B},
     };
 
     unwrap(bin, a.dump<serde::BinaryFormat<>>());
@@ -30,6 +38,9 @@ auto primitives() -> int {
     ensure(a.floating == b.floating);
     ensure(a.string == b.string);
     ensure(a.enumerator == b.enumerator);
+    ensure(a.trivial.d == b.trivial.d);
+    ensure(a.trivial.f == b.trivial.f);
+    ensure(a.trivial.e == b.trivial.e);
     return 0;
 }
 
@@ -44,6 +55,9 @@ struct SubStruct {
     SerdeFieldsBegin;
     std::array<SubSubStruct, 3> SerdeField(subs);
     SerdeFieldsEnd;
+
+    // SubStruct is not memcpy'able
+    ~SubStruct() {}
 };
 
 struct Containers {

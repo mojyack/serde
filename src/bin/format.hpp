@@ -15,7 +15,7 @@ struct BinaryFormat {
 
 // numeric
 template <std::integral SizeType, class T>
-    requires(std::integral<T> || std::floating_point<T> || enumlike<T>)
+    requires(std::is_trivially_copyable_v<T>)
 inline auto serialize(BinaryFormat<SizeType>& /*format*/, const char* const /*name*/, std::vector<std::byte>& payload, const T& data) -> bool {
     const auto prev_size = payload.size();
     payload.resize(prev_size + sizeof(T));
@@ -24,7 +24,7 @@ inline auto serialize(BinaryFormat<SizeType>& /*format*/, const char* const /*na
 }
 
 template <std::integral SizeType, class T>
-    requires(std::integral<T> || std::floating_point<T> || enumlike<T>)
+    requires(std::is_trivially_copyable_v<T>)
 inline auto deserialize(BinaryFormat<SizeType>& /*format*/, const char* const /*name*/, std::span<const std::byte>& payload, T& data) -> bool {
     ensure(payload.size() >= sizeof(T));
     data    = *std::bit_cast<T*>(payload.data());
@@ -94,13 +94,15 @@ inline auto deserialize(BinaryFormat<SizeType>& format, const char* const name, 
 }
 
 // struct
-template <std::integral SizeType, serde_struct T>
+template <std::integral SizeType, class T>
+    requires(serde_struct<T> && !std::is_trivially_copyable_v<T>)
 inline auto serialize(BinaryFormat<SizeType>& format, const char* const /*name*/, std::vector<std::byte>& payload, const T& data) -> bool {
     ensure(serde::impl::call_each_serialize(format, data, payload));
     return true;
 }
 
-template <std::integral SizeType, serde_struct T>
+template <std::integral SizeType, class T>
+    requires(serde_struct<T> && !std::is_trivially_copyable_v<T>)
 inline auto deserialize(BinaryFormat<SizeType>& format, const char* const /*name*/, std::span<const std::byte>& payload, T& data) -> bool {
     ensure(serde::impl::call_each_deserialize(format, data, payload));
     return true;
