@@ -109,17 +109,16 @@ auto deserialize_entry(Format& format, const char* const key, typename Format::R
 #define SerdeFieldsBegin \
     constexpr static auto _serde_fields_begin = __LINE__
 
-#define SerdeFieldsEnd                                                                       \
-    constexpr static auto _serde_fields_end = __LINE__;                                      \
-                                                                                             \
-    template <serde::stream_format Format>                                                   \
-    auto dump(Format format = Format()) const -> std::optional<typename Format::WriteType> { \
-        auto result = typename Format::WriteType();                                          \
-        if(serde::impl::call_each_serialize<Format>(format, *this, result)) {                \
-            return std::move(result);                                                        \
-        } else {                                                                             \
-            return std::nullopt;                                                             \
-        }                                                                                    \
+#define SerdeFieldsEnd                                                                                                         \
+    constexpr static auto _serde_fields_end = __LINE__;                                                                        \
+                                                                                                                               \
+    template <serde::stream_format Format>                                                                                     \
+    auto dump(typename Format::WriteType result = {}, Format format = {}) const -> std::optional<typename Format::WriteType> { \
+        if(serde::impl::call_each_serialize<Format>(format, *this, result)) {                                                  \
+            return std::move(result);                                                                                          \
+        } else {                                                                                                               \
+            return std::nullopt;                                                                                               \
+        }                                                                                                                      \
     }
 
 #define SerdeNamedField(name, key, ...)                                                                     \
@@ -147,8 +146,7 @@ auto deserialize_entry(Format& format, const char* const key, typename Format::R
 
 // load object from data
 template <stream_format Format, serde_struct T>
-auto load(typename Format::ReadType payload, Format format = Format()) -> std::optional<T> {
-    auto result = T();
+auto load(typename Format::ReadType payload, T result = {}, Format format = Format()) -> std::optional<T> {
     if(impl::call_each_deserialize(format, result, payload)) {
         return result;
     } else {

@@ -125,7 +125,30 @@ auto features() -> int {
     ensure(!obj.onum1.has_value());
     ensure(obj.onum2.has_value() && obj.onum2.value() == 2);
     ensure(Features().num_def == -1);
-    ensure((obj.num_def == 3));
+    ensure(obj.num_def == 3);
+    return 0;
+}
+
+// dump/load to existing object
+struct NonSerdeField {
+    SerdeFieldsBegin;
+    SerdeFieldsEnd;
+    int dont_care;
+};
+
+auto non_serde_field() -> int {
+    const auto str = R"(
+        <root num1="1" num2="2" />
+    )";
+
+    unwrap(node_pre, xml::parse(str));
+    unwrap(obj_pre, (serde::load<serde::XmlFormat, NonSerdeField>(node_pre)));
+    unwrap(node, obj_pre.dump<serde::XmlFormat>(xml::Node{.name = "fakeroot", .attrs = {{"dont-care", "8"}}}));
+    unwrap(obj, (serde::load<serde::XmlFormat, NonSerdeField>(node, NonSerdeField{.dont_care = 9})));
+
+    ensure(node.name == "fakeroot");
+    ensure(node.is_attr_equal("dont-care", "8"));
+    ensure(obj.dont_care = 9);
     return 0;
 }
 
@@ -174,6 +197,7 @@ auto main() -> int {
     ensure(attributes() == 0);
     ensure(elements() == 0);
     ensure(features() == 0);
+    ensure(non_serde_field() == 0);
     ensure(missing_field() == 0);
     ensure(mismatched_children_length() == 0);
     std::println("pass");

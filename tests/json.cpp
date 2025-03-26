@@ -122,6 +122,29 @@ auto features() -> int {
     return 0;
 }
 
+// dump/load to existing object
+struct NonSerdeField {
+    SerdeFieldsBegin;
+    SerdeFieldsEnd;
+    int dont_care;
+};
+
+auto non_serde_field() -> int {
+    const auto str = R"({
+        "num1": 1,
+        "num2": 2
+    })";
+
+    unwrap(node_pre, json::parse(str));
+    unwrap(obj_pre, (serde::load<serde::JsonFormat, NonSerdeField>(node_pre)));
+    unwrap(node, obj_pre.dump<serde::JsonFormat>({::json::make_object("dont-care", ::json::Number(8))}));
+    unwrap(obj, (serde::load<serde::JsonFormat, NonSerdeField>(node, NonSerdeField{.dont_care = 9})));
+
+    ensure(node.find<::json::Number>("dont-care")->value == 8);
+    ensure(obj.dont_care = 9);
+    return 0;
+}
+
 // missing field
 struct MissingField {
     SerdeFieldsBegin;
@@ -163,6 +186,7 @@ auto main() -> int {
     ensure(primitives() == 0);
     ensure(containers() == 0);
     ensure(features() == 0);
+    ensure(non_serde_field() == 0);
     ensure(missing_field() == 0);
     ensure(mismatched_array_length() == 0);
     std::println("pass");

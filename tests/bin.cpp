@@ -96,6 +96,30 @@ auto containers() -> int {
     return 0;
 }
 
+// dump/load to existing object
+struct Header {
+    char a;
+    char b;
+};
+
+struct NonSerdeField {
+    SerdeFieldsBegin;
+    SerdeFieldsEnd;
+    int dont_care;
+};
+
+auto non_serde_field() -> int {
+    const auto a = NonSerdeField{};
+
+    auto bin_pre                            = std::vector<std::byte>(sizeof(Header));
+    *std::bit_cast<Header*>(bin_pre.data()) = Header{'a', 'b'};
+    unwrap(bin, a.dump<serde::BinaryFormat<>>(bin_pre));
+    ensure(bin.size() == sizeof(Header));
+    unwrap(b, (serde::load<serde::BinaryFormat<>, NonSerdeField>(bin, {.dont_care = 8})));
+    ensure(b.dont_care == 8);
+    return 0;
+}
+
 // use short size type for saving binary size
 struct ShortSize {
     SerdeFieldsBegin;
@@ -137,6 +161,7 @@ auto too_large() -> int {
 auto main() -> int {
     ensure(primitives() == 0);
     ensure(containers() == 0);
+    ensure(non_serde_field() == 0);
     ensure(short_size() == 0);
     ensure(too_large() == 0);
     std::println("pass");

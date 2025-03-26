@@ -1,3 +1,5 @@
+add_project_arguments('-Wno-missing-field-initializers', language: 'cpp')
+
 subdir('serde')
 
 executable('json',
