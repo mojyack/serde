@@ -29,11 +29,13 @@ concept enumlike = std::is_enum_v<T>;
 template <class Enum>
 auto to_string(const Enum /*num*/) -> std::optional<std::string> {
     static_assert(false, "no string-to-enum converter defined");
+    return std::nullopt;
 }
 
 template <class Enum>
 auto from_string(const std::string_view /*str*/) -> std::optional<Enum> {
     static_assert(false, "no string-to-enum converter defined");
+    return std::nullopt;
 }
 
 namespace impl {
