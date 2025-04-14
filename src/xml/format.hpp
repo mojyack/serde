@@ -23,9 +23,7 @@ struct XmlFormat {
 
 namespace xml {
 template <class T>
-concept xml_node = requires(T obj) {
-    std::same_as<decltype(obj.data), std::string>;
-} && serde::serde_struct<T>;
+concept xml_node = std::same_as<decltype(T::data), std::string> && serde::serde_struct<T>;
 } // namespace xml
 
 // string attribute
