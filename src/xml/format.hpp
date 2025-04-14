@@ -88,6 +88,7 @@ inline auto serialize(XmlFormat& format, const char* const name, ::xml::Node& pa
 template <serde::serde_struct T>
 inline auto deserialize(XmlFormat& /*format*/, const char* const /*name*/, const ::xml::Node& /*payload*/, std::span<T>& /*data*/) -> bool {
     static_assert(false, "span is not deserializable");
+    return false;
 }
 
 // children

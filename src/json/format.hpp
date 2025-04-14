@@ -113,6 +113,7 @@ inline auto serialize(JsonFormat& /*format*/, const char* const name, ::json::Ob
 template <json::serializable T>
 inline auto deserialize(JsonFormat& /*format*/, const char* const /*name*/, const ::json::Object& /*payload*/, std::span<T>& /*data*/) -> bool {
     static_assert(false, "span is not deserializable");
+    return false;
 }
 
 // array
