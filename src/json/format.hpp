@@ -2,9 +2,7 @@
 #include <ranges>
 #include <vector>
 
-#if !defined(SERDE_NO_INCLUDE)
 #include "json/json.hpp"
-#endif
 
 #include "../serde.hpp"
 

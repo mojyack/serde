@@ -2,14 +2,8 @@
 #include <ranges>
 #include <span>
 
-#if !defined(SERDE_NO_INCLUDE)
+#include "util/charconv.hpp"
 #include "xml/xml.hpp"
-#endif
-
-// FIXME: should have own cutil
-#define CUTIL_NS serde::xml
-#include "xml/util/charconv.hpp"
-#undef CUTIL_NS
 
 #include "../serde.hpp"
 
@@ -50,7 +44,7 @@ template <class T>
     requires(std::integral<T> || std::floating_point<T>)
 inline auto deserialize(XmlFormat& /*format*/, const char* const name, const ::xml::Node& payload, T& data) -> bool {
     unwrap(attr, payload.find_attr(name));
-    unwrap(num, xml::from_chars<T>(attr));
+    unwrap(num, from_chars<T>(attr));
     data = num;
     return true;
 }

@@ -1,6 +1,0 @@
-[submodule "submodules/tinyjson"]
-	path = submodules/tinyjson
-	url = https://github.com/mojyack/tinyjson.git
-[submodule "submodules/tinyxml"]
-	path = submodules/tinyxml
-	url = https://github.com/mojyack/tinyxml.git
