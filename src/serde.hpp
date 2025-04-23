@@ -136,10 +136,12 @@ auto deserialize_entry(Format& format, const char* const key, typename Format::R
                                                                                                             \
     template <serde::stream_format Format>                                                                  \
     auto _deserialize(Format& format, Format::ReadType& payload, serde::impl::Tag<__LINE__>) -> bool {      \
-        if(!serde::impl::deserialize_entry(format, key, payload, name)) {                                   \
+        auto storage = decltype(name)();                                                                    \
+        if(!serde::impl::deserialize_entry(format, key, payload, storage)) {                                \
             std::println(stderr, R"(failed to deserialize field "{}"(key="{}"))", #name, key);              \
             return false;                                                                                   \
         }                                                                                                   \
+        name = std::move(storage);                                                                          \
         return true;                                                                                        \
     }
 
