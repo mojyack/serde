@@ -22,6 +22,9 @@ template <class T>
     requires(std::integral<T> || std::floating_point<T>)
 auto deserialize_element(const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::Number>());
+    constexpr auto min = std::numeric_limits<T>::lowest();
+    constexpr auto max = std::numeric_limits<T>::max();
+    ensure(min <= node.value && node.value <= max, "{0} is out of range, must be {1} <= {0} <= {2}", node.value, min, max);
     data = node.value;
     return true;
 }
