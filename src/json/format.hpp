@@ -14,6 +14,7 @@ namespace json {
 template <class T>
     requires(std::integral<T> || std::floating_point<T>)
 auto serialize_element(::json::Value& value, const T& data) -> bool {
+    ensure(T(double(data)) == data);
     value.emplace<::json::Number>(double(data));
     return true;
 }
@@ -22,6 +23,7 @@ template <class T>
     requires(std::integral<T> || std::floating_point<T>)
 auto deserialize_element(const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::Number>());
+    ensure(T(node.value) == node.value);
     data = node.value;
     return true;
 }

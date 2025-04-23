@@ -1,4 +1,5 @@
 #include <array>
+#include <float.h>
 #include <vector>
 
 #include "serde/json/format.hpp"
@@ -206,6 +207,26 @@ auto packed() -> int {
     return 0;
 }
 
+// out of range
+struct OutOfRange {
+    SerdeFieldsBegin;
+    uint64_t SerdeField(a, (1uz << 53) + 1);
+    uint8_t  SerdeField(b);
+    SerdeFieldsEnd;
+};
+
+auto out_of_range() -> int {
+    const auto str = R"({
+        "a": 0,
+        "b": 255.1
+    })";
+
+    ensure(!OutOfRange{}.dump<serde::JsonFormat>()); // double(OutOfRange::a) causes conversion error
+    unwrap(node_pre, json::parse(str));
+    ensure(!(serde::load<serde::JsonFormat, Packed>(node_pre))); // uint8_t(255.1) causes conversion error
+    return 0;
+}
+
 auto main() -> int {
     ensure(primitives() == 0);
     ensure(containers() == 0);
@@ -214,6 +235,7 @@ auto main() -> int {
     ensure(missing_field() == 0);
     ensure(mismatched_array_length() == 0);
     ensure(packed() == 0);
+    ensure(out_of_range() == 0);
     std::println("pass");
     return 0;
 }
