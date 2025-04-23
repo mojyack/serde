@@ -206,6 +206,24 @@ auto packed() -> int {
     return 0;
 }
 
+// out of range
+struct OutOfRange {
+    SerdeFieldsBegin;
+    float SerdeField(a);
+    SerdeFieldsEnd;
+};
+
+auto out_of_range() -> int {
+    // max float value is 3.402823466e+38, 3.502823466e+38 is out of range
+    const auto str = R"({
+        "a": 3.502823466e+38
+    })";
+
+    unwrap(node_pre, json::parse(str));
+    ensure(!(serde::load<serde::JsonFormat, OutOfRange>(node_pre)));
+    return 0;
+}
+
 auto main() -> int {
     ensure(primitives() == 0);
     ensure(containers() == 0);
@@ -214,6 +232,7 @@ auto main() -> int {
     ensure(missing_field() == 0);
     ensure(mismatched_array_length() == 0);
     ensure(packed() == 0);
+    ensure(out_of_range() == 0);
     std::println("pass");
     return 0;
 }
