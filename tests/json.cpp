@@ -182,6 +182,30 @@ auto mismatched_array_length() -> int {
     return 0;
 }
 
+// packed structure
+struct Packed {
+    SerdeFieldsBegin;
+    uint8_t SerdeField(a);
+    uint8_t SerdeField(b);
+    SerdeFieldsEnd;
+} __attribute__((packed));
+
+auto packed() -> int {
+    const auto str = R"({
+        "a": 1,
+        "b": 2
+    })";
+
+    unwrap(node_pre, json::parse(str));
+    unwrap(obj_pre, (serde::load<serde::JsonFormat, Packed>(node_pre)));
+    unwrap(node, obj_pre.dump<serde::JsonFormat>());
+    unwrap(obj, (serde::load<serde::JsonFormat, Packed>(node)));
+
+    ensure((obj.a == 1));
+    ensure((obj.b == 2));
+    return 0;
+}
+
 auto main() -> int {
     ensure(primitives() == 0);
     ensure(containers() == 0);
@@ -189,6 +213,7 @@ auto main() -> int {
     ensure(non_serde_field() == 0);
     ensure(missing_field() == 0);
     ensure(mismatched_array_length() == 0);
+    ensure(packed() == 0);
     std::println("pass");
     return 0;
 }
