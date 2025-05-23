@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 #include <ranges>
 #include <vector>
 
@@ -10,20 +11,34 @@
 
 namespace serde {
 namespace json {
-// numeric
-template <class T>
-    requires(std::integral<T> || std::floating_point<T>)
+// integral
+template <std::integral T>
 auto serialize_element(::json::Value& value, const T& data) -> bool {
     ensure(T(double(data)) == data);
     value.emplace<::json::Number>(double(data));
     return true;
 }
 
-template <class T>
-    requires(std::integral<T> || std::floating_point<T>)
+template <std::integral T>
 auto deserialize_element(const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::Number>());
     ensure(T(node.value) == node.value);
+    data = node.value;
+    return true;
+}
+
+// floating point
+template <std::floating_point T>
+auto serialize_element(::json::Value& value, const T& data) -> bool {
+    ensure(data <= std::numeric_limits<double>::max() && data >= std::numeric_limits<double>::lowest());
+    value.emplace<::json::Number>(double(data));
+    return true;
+}
+
+template <std::floating_point T>
+auto deserialize_element(const ::json::Value& value, T& data) -> bool {
+    unwrap(node, value.get<::json::Number>());
+    ensure(node.value <= std::numeric_limits<T>::max() && node.value >= std::numeric_limits<T>::lowest());
     data = node.value;
     return true;
 }
