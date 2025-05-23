@@ -1,5 +1,5 @@
 #include <array>
-#include <float.h>
+#include <limits>
 #include <vector>
 
 #include "serde/json/format.hpp"
@@ -207,23 +207,68 @@ auto packed() -> int {
     return 0;
 }
 
-// out of range
-struct OutOfRange {
+// allow float error
+struct AllowFloatError {
+    SerdeFieldsBegin;
+    float SerdeField(a);
+    SerdeFieldsEnd;
+};
+
+static_assert(double(0.1) != float(0.1));
+
+auto allow_float_error() -> int {
+    const auto str = R"({
+        "a": 0.1
+    })";
+
+    unwrap(node_pre, json::parse(str));
+    unwrap(obj_pre, (serde::load<serde::JsonFormat, AllowFloatError>(node_pre)));
+    unwrap(node, obj_pre.dump<serde::JsonFormat>());
+    unwrap(obj, (serde::load<serde::JsonFormat, AllowFloatError>(node)));
+
+    ensure(obj.a != double(0.1)); // obj.a contains float<->double conversion error
+
+    return 0;
+}
+
+// integer out of range
+struct OutOfRangeInt {
     SerdeFieldsBegin;
     uint64_t SerdeField(a, (1uz << 53) + 1);
     uint8_t  SerdeField(b);
     SerdeFieldsEnd;
 };
 
-auto out_of_range() -> int {
+auto out_of_range_int() -> int {
     const auto str = R"({
         "a": 0,
         "b": 255.1
     })";
 
-    ensure(!OutOfRange{}.dump<serde::JsonFormat>()); // double(OutOfRange::a) causes conversion error
+    ensure(!OutOfRangeInt{}.dump<serde::JsonFormat>()); // double(OutOfRangeInt::a) causes conversion error
     unwrap(node_pre, json::parse(str));
-    ensure(!(serde::load<serde::JsonFormat, Packed>(node_pre))); // uint8_t(255.1) causes conversion error
+    ensure(!(serde::load<serde::JsonFormat, OutOfRangeInt>(node_pre))); // uint8_t(255.1) causes conversion error
+    return 0;
+}
+
+// float out of range
+struct OutOfRangeFloat {
+    SerdeFieldsBegin;
+    // not available yet
+    // float128_t SerdeField(a);
+    float SerdeField(b);
+    SerdeFieldsEnd;
+};
+
+auto out_of_range_float() -> int {
+    const auto str = std::format(
+        R"({{
+        "b": {:.128}
+    }})",
+        double(std::numeric_limits<float>::max()) * 2);
+
+    unwrap(node_pre, json::parse(str));
+    ensure(!(serde::load<serde::JsonFormat, OutOfRangeFloat>(node_pre))); // float(FLT_MAX*2) causes conversion error
     return 0;
 }
 
@@ -235,7 +280,9 @@ auto main() -> int {
     ensure(missing_field() == 0);
     ensure(mismatched_array_length() == 0);
     ensure(packed() == 0);
-    ensure(out_of_range() == 0);
+    ensure(allow_float_error() == 0);
+    ensure(out_of_range_int() == 0);
+    ensure(out_of_range_float() == 0);
     std::println("pass");
     return 0;
 }
