@@ -1,4 +1,4 @@
-cutil https://github.com/mojyack/cutil.git 1f9e1b11fb7e6f461e46231d3e39e051f737182f
-cutil-macros https://github.com/mojyack/cutil-macros.git dac3e0230a30aeef5b050f9afc906c3f817caab2
+cutil https://github.com/mojyack/cutil.git b840a46a5fc6268ece49d0e0194bcfde72e63136
+cutil-macros https://github.com/mojyack/cutil-macros.git 1d2a8214ed29989cc43fd970da8971da53af47a4
 tinyjson https://github.com/mojyack/tinyjson.git 0321bd2cf0c3522054700f8c5d190295ef75cffb
 tinyxml https://github.com/mojyack/tinyxml.git e358c62a9024e040f14e8d0086718f5311a8ce89
