@@ -10,17 +10,22 @@
 #include "../macro.hpp"
 
 namespace serde {
+struct JsonFormat {
+    using ReadType  = const ::json::Object;
+    using WriteType = ::json::Object;
+};
+
 namespace json {
 // integral
 template <std::integral T>
-auto serialize_element(::json::Value& value, const T& data) -> bool {
+auto serialize_element(JsonFormat& /*format*/, ::json::Value& value, const T& data) -> bool {
     ensure(T(double(data)) == data);
     value.emplace<::json::Number>(double(data));
     return true;
 }
 
 template <std::integral T>
-auto deserialize_element(const ::json::Value& value, T& data) -> bool {
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::Number>());
     ensure(T(node.value) == node.value);
     data = node.value;
@@ -29,14 +34,14 @@ auto deserialize_element(const ::json::Value& value, T& data) -> bool {
 
 // floating point
 template <std::floating_point T>
-auto serialize_element(::json::Value& value, const T& data) -> bool {
+auto serialize_element(JsonFormat& /*format*/, ::json::Value& value, const T& data) -> bool {
     ensure(data <= std::numeric_limits<double>::max() && data >= std::numeric_limits<double>::lowest());
     value.emplace<::json::Number>(double(data));
     return true;
 }
 
 template <std::floating_point T>
-auto deserialize_element(const ::json::Value& value, T& data) -> bool {
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::Number>());
     ensure(node.value <= std::numeric_limits<T>::max() && node.value >= std::numeric_limits<T>::lowest());
     data = node.value;
@@ -44,24 +49,24 @@ auto deserialize_element(const ::json::Value& value, T& data) -> bool {
 }
 
 // string
-inline auto serialize_element(::json::Value& value, const std::string& data) -> bool {
+inline auto serialize_element(JsonFormat& /*format*/, ::json::Value& value, const std::string& data) -> bool {
     value.emplace<::json::String>(data);
     return true;
 }
 
-inline auto deserialize_element(const ::json::Value& value, std::string& data) -> bool {
+inline auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& value, std::string& data) -> bool {
     unwrap(node, value.get<::json::String>());
     data = node.value;
     return true;
 }
 
 // boolean
-inline auto serialize_element(::json::Value& value, const bool& data) -> bool {
+inline auto serialize_element(JsonFormat& /*format*/, ::json::Value& value, const bool& data) -> bool {
     value.emplace<::json::Boolean>(data);
     return true;
 }
 
-inline auto deserialize_element(const ::json::Value& value, bool& data) -> bool {
+inline auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& value, bool& data) -> bool {
     unwrap(node, value.get<::json::Boolean>());
     data = node.value;
     return true;
@@ -69,113 +74,119 @@ inline auto deserialize_element(const ::json::Value& value, bool& data) -> bool 
 
 // enum
 template <enumlike T>
-inline auto serialize_element(::json::Value& value, const T& data) -> bool {
+auto serialize_element(JsonFormat& /*format*/, ::json::Value& value, const T& data) -> bool {
     unwrap(str, to_string(data));
     value.emplace<::json::String>(std::move(str));
     return true;
 }
 
 template <enumlike T>
-inline auto deserialize_element(const ::json::Value& value, T& data) -> bool {
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& value, T& data) -> bool {
     unwrap(node, value.get<::json::String>());
     unwrap(num, from_string<T>(node.value));
     data = num;
     return true;
 }
 
-template <class T>
-concept serializable = requires(::json::Value& value, const T& data) {
-    serialize_element(value, data);
-};
+// forward declarations
+template <class T, size_t len>
+auto serialize_element(JsonFormat& /*format*/, ::json::Value& payload, const std::array<T, len>& data) -> bool;
 
-template <class T>
-concept deserializable = requires(const ::json::Value& value, T& data) {
-    { deserialize_element(value, data) } -> std::same_as<bool>;
-};
-} // namespace json
+template <class T, size_t len>
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& payload, std::array<T, len>& data) -> bool;
 
-struct JsonFormat {
-    using ReadType  = const ::json::Object;
-    using WriteType = ::json::Object;
-};
+template <serde_struct T>
+auto serialize_element(JsonFormat& /*format*/, ::json::Value& payload, const T& data) -> bool;
 
-// primitives
-template <json::serializable T>
-inline auto serialize(JsonFormat& /*format*/, const char* const name, ::json::Object& payload, const T& data) -> bool {
-    ensure(json::serialize_element(payload[name], data));
-    return true;
-}
-
-template <json::deserializable T>
-inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, T& data) -> bool {
-    unwrap(node, payload.find(name));
-    ensure(json::deserialize_element(node, data));
-    return true;
-}
+template <serde_struct T>
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& payload, T& data) -> bool;
 
 // span
-template <json::serializable T>
-inline auto serialize(JsonFormat& /*format*/, const char* const name, ::json::Object& payload, const std::span<const T>& data) -> bool {
+template <class T>
+auto serialize_element(JsonFormat& format, ::json::Value& payload, const std::span<const T>& data) -> bool {
     auto array = ::json::Array();
     array.value.resize(data.size());
     for(auto&& [a, d] : std::views::zip(array.value, data)) {
-        ensure(json::serialize_element(a, d));
+        ensure(json::serialize_element(format, a, d));
     }
-    payload[name] = ::json::Value::create<::json::Array>(std::move(array));
+    payload = ::json::Value::create<::json::Array>(std::move(array));
     return true;
 }
 
-template <json::deserializable T>
-inline auto deserialize(JsonFormat& /*format*/, const char* const /*name*/, const ::json::Object& /*payload*/, std::span<T>& /*data*/) -> bool {
+template <class T>
+auto deserialize_element(JsonFormat& /*format*/, const ::json::Value& /*payload*/, std::span<T>& /*data*/) -> bool {
     static_assert(false, "span is not deserializable");
     return false;
 }
 
 // array
-template <json::serializable T>
-inline auto serialize(JsonFormat& format, const char* const name, ::json::Object& payload, const std::vector<T>& data) -> bool {
-    ensure(serialize(format, name, payload, std::span{data}));
-    return true;
+template <class T>
+auto serialize_element(JsonFormat& format, ::json::Value& payload, const std::vector<T>& data) -> bool {
+    return serialize_element(format, payload, std::span(data));
 }
 
-template <json::deserializable T>
-inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, std::vector<T>& data) -> bool {
-    unwrap(array, payload.find<::json::Array>(name));
+template <class T>
+auto deserialize_element(JsonFormat& format, const ::json::Value& payload, std::vector<T>& data) -> bool {
+    unwrap(array, payload.get<::json::Array>());
     data.resize(array.value.size());
     for(auto&& [a, d] : std::views::zip(array.value, data)) {
-        ensure(json::deserialize_element(a, d));
+        ensure(json::deserialize_element(format, a, d));
     }
     return true;
 }
 
 // fixed-length array
-template <json::serializable T, size_t len>
-inline auto serialize(JsonFormat& format, const char* const name, ::json::Object& payload, const std::array<T, len>& data) -> bool {
-    ensure(serialize(format, name, payload, std::span{data.data(), data.size()}));
-    return true;
+template <class T, size_t len>
+auto serialize_element(JsonFormat& format, ::json::Value& payload, const std::array<T, len>& data) -> bool {
+    return serialize_element(format, payload, std::span<const T>(data));
 }
 
-template <json::deserializable T, size_t len>
-inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, std::array<T, len>& data) -> bool {
-    unwrap(array, payload.find<::json::Array>(name));
+template <class T, size_t len>
+auto deserialize_element(JsonFormat& format, const ::json::Value& payload, std::array<T, len>& data) -> bool {
+    unwrap(array, payload.get<::json::Array>());
     ensure(len == array.value.size());
     for(auto&& [a, d] : std::views::zip(array.value, data)) {
-        ensure(json::deserialize_element(a, d));
+        ensure(json::deserialize_element(format, a, d));
     }
     return true;
 }
 
 // object
 template <serde_struct T>
-inline auto serialize(JsonFormat& format, const char* const name, ::json::Object& payload, const T& data) -> bool {
-    ensure(serde::impl::call_each_serialize(format, data, payload[name].emplace<::json::Object>()));
+auto serialize_element(JsonFormat& format, ::json::Value& payload, const T& data) -> bool {
+    ensure(serde::impl::call_each_serialize(format, data, payload.emplace<::json::Object>()));
     return true;
 }
 
 template <serde_struct T>
-inline auto deserialize(JsonFormat& format, const char* const name, const ::json::Object& payload, T& data) -> bool {
-    unwrap(object, payload.find<::json::Object>(name));
-    ensure(serde::impl::call_each_deserialize(format, data, object));
+auto deserialize_element(JsonFormat& format, const ::json::Value& payload, T& data) -> bool {
+    unwrap(node, payload.get<::json::Object>());
+    ensure(serde::impl::call_each_deserialize(format, data, node));
+    return true;
+}
+
+// concept
+template <class T>
+concept serializable = requires(JsonFormat& format, ::json::Value& value, const T& data) {
+    serialize_element(format, value, data);
+};
+
+template <class T>
+concept deserializable = requires(JsonFormat& format, const ::json::Value& value, T& data) {
+    { deserialize_element(format, value, data) } -> std::same_as<bool>;
+};
+} // namespace json
+
+template <json::serializable T>
+auto serialize(JsonFormat& format, const char* const name, ::json::Object& payload, const T& data) -> bool {
+    ensure(json::serialize_element(format, payload[name], data));
+    return true;
+}
+
+template <json::deserializable T>
+auto deserialize(JsonFormat& format, const char* const name, const ::json::Object& payload, T& data) -> bool {
+    unwrap(node, payload.find(name));
+    ensure(json::deserialize_element(format, node, data));
     return true;
 }
 } // namespace serde

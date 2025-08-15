@@ -61,9 +61,10 @@ struct SubStruct {
 struct Containers {
     SerdeFieldsBegin;
 
-    std::vector<int>   SerdeField(vector);
-    std::array<int, 4> SerdeField(array);
-    SubStruct          SerdeField(child);
+    std::vector<int>       SerdeField(vector);
+    std::array<int, 4>     SerdeField(array);
+    SubStruct              SerdeField(child);
+    std::vector<SubStruct> SerdeField(children);
 
     SerdeFieldsEnd;
 };
@@ -77,7 +78,27 @@ auto containers() -> int {
             "child": {
                 "num": 20
             }
-        }
+        },
+        "children": [
+            {
+                "num": 10,
+                "child": {
+                    "num": 11
+                }
+            },
+            {
+                "num": 20,
+                "child": {
+                    "num": 21
+                }
+            },
+            {
+                "num": 30,
+                "child": {
+                    "num": 31
+                }
+            }
+        ]
     })";
 
     unwrap(node_pre, json::parse(str));
@@ -89,6 +110,13 @@ auto containers() -> int {
     ensure((obj.array == std::array{6, 7, 8, 9}));
     ensure((obj.child.num == 10));
     ensure((obj.child.child.num == 20));
+    ensure((obj.children.size() == 3));
+    ensure((obj.children[0].num == 10));
+    ensure((obj.children[0].child.num == 11));
+    ensure((obj.children[1].num == 20));
+    ensure((obj.children[1].child.num == 21));
+    ensure((obj.children[2].num == 30));
+    ensure((obj.children[2].child.num == 31));
     return 0;
 }
 
