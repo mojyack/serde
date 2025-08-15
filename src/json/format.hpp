@@ -106,7 +106,7 @@ inline auto serialize(JsonFormat& /*format*/, const char* const name, ::json::Ob
     return true;
 }
 
-template <json::serializable T>
+template <json::deserializable T>
 inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, T& data) -> bool {
     unwrap(node, payload.find(name));
     ensure(json::deserialize_element(node, data));
@@ -125,7 +125,7 @@ inline auto serialize(JsonFormat& /*format*/, const char* const name, ::json::Ob
     return true;
 }
 
-template <json::serializable T>
+template <json::deserializable T>
 inline auto deserialize(JsonFormat& /*format*/, const char* const /*name*/, const ::json::Object& /*payload*/, std::span<T>& /*data*/) -> bool {
     static_assert(false, "span is not deserializable");
     return false;
@@ -138,7 +138,7 @@ inline auto serialize(JsonFormat& format, const char* const name, ::json::Object
     return true;
 }
 
-template <json::serializable T>
+template <json::deserializable T>
 inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, std::vector<T>& data) -> bool {
     unwrap(array, payload.find<::json::Array>(name));
     data.resize(array.value.size());
@@ -155,7 +155,7 @@ inline auto serialize(JsonFormat& format, const char* const name, ::json::Object
     return true;
 }
 
-template <json::serializable T, size_t len>
+template <json::deserializable T, size_t len>
 inline auto deserialize(JsonFormat& /*format*/, const char* const name, const ::json::Object& payload, std::array<T, len>& data) -> bool {
     unwrap(array, payload.find<::json::Array>(name));
     ensure(len == array.value.size());
